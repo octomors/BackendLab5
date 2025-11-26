@@ -10,6 +10,7 @@ from .tags import router as tags_router
 from .users import router as users_router
 from .auth import router as auth_router
 from .images import router as images_router
+from .video_generations import router as video_generations_router
 
 http_bearer = HTTPBearer(auto_error=False)
 
@@ -24,3 +25,4 @@ router.include_router(tags_router)
 router.include_router(users_router)
 router.include_router(auth_router)
 router.include_router(images_router)
+router.include_router(video_generations_router)

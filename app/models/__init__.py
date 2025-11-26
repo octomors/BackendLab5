@@ -9,6 +9,8 @@ __all__ = (
     "SessionDep",
     "Image",
     "ImageStatus",
+    "VideoGeneration",
+    "VideoGenerationStatus",
 )
 
 from .db_helper import db_helper, SessionDep
@@ -17,3 +19,4 @@ from .post import Post, Category, Tag
 from .users import User
 from .access_token import AccessToken
 from .image import Image, ImageStatus
+from .video_generation import VideoGeneration, VideoGenerationStatus
