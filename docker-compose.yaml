@@ -98,6 +98,8 @@ services:
     depends_on:
       web:
         condition: service_started
+      pg:
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
       maildev:
