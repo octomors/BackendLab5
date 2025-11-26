@@ -7,9 +7,13 @@ services:
       POSTGRES_PASSWORD: password_fastapi
     ports:
       - "5432:5432"
-
     volumes:
       - "db_fastapi:/var/lib/postgresql/data"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user_fastapi -d db_fastapi"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
@@ -23,6 +27,11 @@ services:
       RABBITMQ_DEFAULT_PASS: "guest"
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   maildev:
     image: maildev/maildev
@@ -43,8 +52,63 @@ services:
     ports:
       - "8080:8080"
 
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      APP_CONFIG__RUN__HOST: "0.0.0.0"
+      APP_CONFIG__RUN__PORT: "8001"
+      APP_CONFIG__RUN__RELOAD: "false"
+      APP_CONFIG__RUN__APP_URL: "http://localhost:8001"
+      APP_CONFIG__DB__URL: "postgresql+asyncpg://user_fastapi:password_fastapi@pg:5432/db_fastapi"
+      APP_CONFIG__ACCESS_TOKEN__RESET_PASSWORD_TOKEN_SECRET: "65d30fd9fe2b8592d95817b005c0e0184d5b952e33a09bae47d33cfc9052e371"
+      APP_CONFIG__ACCESS_TOKEN__VERIFICATION_TOKEN_SECRET: "79afe877e9a5291f626b9f16266d06e77566bd5f1a7ddbf3b8729969e879b080"
+      RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672//"
+      SMTP_HOST: "maildev"
+      SMTP_PORT: "1025"
+    depends_on:
+      pg:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      maildev:
+        condition: service_started
+    volumes:
+      - media_data:/app/media
+
+  taskiq-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["uv", "run", "taskiq", "worker", "task_queue:broker", "--fs-discover", "--tasks-pattern", "**/tasks"]
+    environment:
+      APP_CONFIG__RUN__HOST: "0.0.0.0"
+      APP_CONFIG__RUN__PORT: "8001"
+      APP_CONFIG__RUN__RELOAD: "false"
+      APP_CONFIG__RUN__APP_URL: "http://localhost:8001"
+      APP_CONFIG__DB__URL: "postgresql+asyncpg://user_fastapi:password_fastapi@pg:5432/db_fastapi"
+      APP_CONFIG__ACCESS_TOKEN__RESET_PASSWORD_TOKEN_SECRET: "65d30fd9fe2b8592d95817b005c0e0184d5b952e33a09bae47d33cfc9052e371"
+      APP_CONFIG__ACCESS_TOKEN__VERIFICATION_TOKEN_SECRET: "79afe877e9a5291f626b9f16266d06e77566bd5f1a7ddbf3b8729969e879b080"
+      RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672//"
+      SMTP_HOST: "maildev"
+      SMTP_PORT: "1025"
+    depends_on:
+      pg:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      maildev:
+        condition: service_started
+    volumes:
+      - media_data:/app/media
+
 volumes:
   db_fastapi:
     driver: local
   rabbitmq-data:
+    driver: local
+  media_data:
     driver: local
