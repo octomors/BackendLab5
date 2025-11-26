@@ -3,6 +3,9 @@ from fastapi import Depends
 from repositories.tag_repository import TagRepository
 from repositories.category_repository import CategoryRepository
 from repositories.post_repository import PostRepository
+from queries.category_queries import CategoryQueries
+from queries.post_queries import PostQueries
+from queries.tag_queries import TagQueries
 from schemas.post_schema import PostCreate, PostUpdate
 from models import Post, SessionDep, Tag
 from exceptions import CategoryNotFoundException, PostNotFoundException
@@ -15,13 +18,25 @@ class PostService:
     def __init__(
         self,
         uow: SessionDep,
+        category_queries: Annotated[
+            CategoryQueries,
+            Depends(CategoryQueries),
+        ],
         category_repository: Annotated[
             CategoryRepository,
             Depends(CategoryRepository),
         ],
+        post_queries: Annotated[
+            PostQueries,
+            Depends(PostQueries),
+        ],
         post_repository: Annotated[
             PostRepository,
             Depends(PostRepository),
+        ],
+        tag_queries: Annotated[
+            TagQueries,
+            Depends(TagQueries),
         ],
         tag_repository: Annotated[
             TagRepository,
@@ -30,13 +45,16 @@ class PostService:
         read_time_calculator: ReadTimeCalculatorDep,
     ):
         self.uow = uow
+        self.category_queries = category_queries
         self.category_repository = category_repository
+        self.post_queries = post_queries
         self.post_repository = post_repository
+        self.tag_queries = tag_queries
         self.tag_repository = tag_repository
         self.read_time_calculator = read_time_calculator
 
     async def create(self, post_create: PostCreate) -> int:
-        category = await self.category_repository.get_one(post_create.category_id)
+        category = await self.category_queries.get_one(post_create.category_id)
 
         if not category:
             raise CategoryNotFoundException()
@@ -62,11 +80,11 @@ class PostService:
         return post.id
 
     async def update(self, post_id: int, post_update: PostUpdate) -> int:
-        post = await self.post_repository.get_one(post_id)
+        post = await self.post_queries.get_one(post_id)
         if not post:
             raise PostNotFoundException()
 
-        category = await self.category_repository.get_one(post_update.category_id)
+        category = await self.category_queries.get_one(post_update.category_id)
         if not category:
             raise CategoryNotFoundException()
 
@@ -82,7 +100,7 @@ class PostService:
         return post.id
 
     async def destroy(self, id: int) -> None:
-        post = await self.post_repository.get_one(id)
+        post = await self.post_queries.get_one(id)
 
         if not post:
             raise PostNotFoundException()
@@ -111,13 +129,11 @@ class PostService:
         all_tags = []
 
         if tag_ids:
-            tags_by_id = await self.tag_repository.get_many(tag_ids)
+            tags_by_id = await self.tag_queries.get_many(tag_ids)
             all_tags.extend(tags_by_id)
 
         if tag_names:
-            existing_tags_by_name = await self.tag_repository.get_many_by_names(
-                tag_names
-            )
+            existing_tags_by_name = await self.tag_queries.get_many_by_names(tag_names)
             existing_tag_names = {tag.name for tag in existing_tags_by_name}
 
             all_tags.extend(existing_tags_by_name)

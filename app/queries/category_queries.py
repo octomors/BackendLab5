@@ -14,6 +14,9 @@ class CategoryQueries:
     def get_categories_query(self) -> Select[tuple[Category]]:
         return select(Category).order_by(Category.id)
 
+    async def get_one(self, category_id: int) -> Category | None:
+        return await self.session.get(Category, category_id)
+
     async def get_by_id(self, category_id: int) -> Category | None:
         category = await self.session.get(Category, category_id)
         if not category:
