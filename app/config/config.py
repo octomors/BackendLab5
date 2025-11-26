@@ -28,6 +28,7 @@ class UrlPrefix(BaseModel):
     categories: str = "/categories"
     tags: str = "/tags"
     images: str = "/images"
+    video_generations: str = "/video-generations"
     auth: str = "/auth"
     users: str = "/users"
 
