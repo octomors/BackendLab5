@@ -1,3 +1,4 @@
+import os
 from typing import Annotated, Protocol
 from fastapi import Depends
 from .smtp import SMTP
@@ -11,8 +12,8 @@ class Mail(Protocol):
 # Все данные должны браться из переменных окружения и конфигурации
 def get_mail() -> Mail:
     return SMTP(
-        host="localhost",
-        port=1025,
+        host=os.getenv("SMTP_HOST", "localhost"),
+        port=int(os.getenv("SMTP_PORT", "1025")),
         admin_email="admin@localhost",
     )
 
