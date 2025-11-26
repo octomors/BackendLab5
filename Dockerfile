@@ -15,7 +15,7 @@ RUN uv sync --frozen
 COPY app/ ./
 
 # Make entrypoint script executable
-RUN chmod +x entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 # Expose the port the app runs on
 EXPOSE 8001
