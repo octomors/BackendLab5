@@ -96,8 +96,8 @@ services:
       SMTP_HOST: "maildev"
       SMTP_PORT: "1025"
     depends_on:
-      pg:
-        condition: service_healthy
+      web:
+        condition: service_started
       rabbitmq:
         condition: service_healthy
       maildev:
