@@ -1,5 +1,5 @@
 from typing import AsyncIterator
-from sqlalchemy import Select, select
+from sqlalchemy import Select, select, exists
 from sqlalchemy.orm import selectinload, joinedload, contains_eager
 from exceptions import PostNotFoundException
 from models import Post, SessionDep
@@ -30,6 +30,9 @@ class PostQueries:
         query = filter.sort(query)
         return query
 
+    async def get_one(self, post_id: int) -> Post | None:
+        return await self.session.get(Post, post_id)
+
     async def get_by_id(self, post_id: int) -> Post | None:
         post = await self.session.get(
             Post, post_id, options=[selectinload(Post.tags), joinedload(Post.category)]
@@ -38,6 +41,11 @@ class PostQueries:
             raise PostNotFoundException()
         # В идеале возвращать DTO, а не модель
         return post
+
+    async def has_by_category(self, category_id: int) -> bool:
+        return await self.session.scalar(
+            select(exists().where(Post.category_id == category_id))
+        )
 
     async def stream(
         self,

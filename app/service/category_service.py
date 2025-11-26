@@ -1,10 +1,11 @@
 from typing import Annotated
 from fastapi import Depends
 from repositories.category_repository import CategoryRepository
+from queries.category_queries import CategoryQueries
+from queries.post_queries import PostQueries
 from schemas.category_schema import CategoryCreate, CategoryUpdate
 from models import Category, SessionDep
 from exceptions import CategoryNotFoundException
-from repositories.post_repository import PostRepository
 from exceptions import CategoryHasPostsException
 
 
@@ -12,9 +13,13 @@ class CategoryService:
     def __init__(
         self,
         uow: SessionDep,
-        post_repository: Annotated[
-            PostRepository,
-            Depends(PostRepository),
+        post_queries: Annotated[
+            PostQueries,
+            Depends(PostQueries),
+        ],
+        category_queries: Annotated[
+            CategoryQueries,
+            Depends(CategoryQueries),
         ],
         category_repository: Annotated[
             CategoryRepository,
@@ -22,8 +27,9 @@ class CategoryService:
         ],
     ):
         self.uow = uow
+        self.category_queries = category_queries
         self.category_repository = category_repository
-        self.post_repository = post_repository
+        self.post_queries = post_queries
 
     async def create(self, category_create: CategoryCreate) -> int:
 
@@ -35,7 +41,7 @@ class CategoryService:
         return category.id
 
     async def update(self, category_id: int, category_update: CategoryUpdate) -> int:
-        category = await self.category_repository.get_one(category_id)
+        category = await self.category_queries.get_one(category_id)
         if not category:
             raise CategoryNotFoundException()
 
@@ -44,12 +50,12 @@ class CategoryService:
         return category.id
 
     async def destroy(self, id: int) -> None:
-        category = await self.category_repository.get_one(id)
+        category = await self.category_queries.get_one(id)
 
         if not category:
             raise CategoryNotFoundException()
 
-        if self.post_repository.has_by_category(category.id):
+        if await self.post_queries.has_by_category(category.id):
             raise CategoryHasPostsException()
 
         await self.category_repository.delete(category)
